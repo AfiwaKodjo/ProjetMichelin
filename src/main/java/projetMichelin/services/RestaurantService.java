@@ -54,7 +54,7 @@ public class RestaurantService {
     }
 
     //mettre à jour le nom et l'adresse d'un restaurant
-    public RestaurantResponseDto updateRestaurant(Integer id, RestaurantCreateRequestDto dto){
+    public RestaurantResponseDto updateRestaurant(Integer id, RestaurantUpdateDto dto){
         RestaurantEntity restaurant = findRestaurant(id);
         restaurant.setName(dto.getName());
         restaurant.setAddress(dto.getAddress());

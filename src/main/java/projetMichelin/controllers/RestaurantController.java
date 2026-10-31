@@ -46,7 +46,7 @@ public class RestaurantController {
     //Pour modifier nom et l'adresse
     @PutMapping("/restaurants/{id}")
     public RestaurantResponseDto updateRestaurant(@PathVariable Integer id, @Valid @RequestBody RestaurantUpdateDto dto){
-        return RestaurantService.updateRestaurant(id,dto);
+        return restaurantService.updateRestaurant(id,dto);
     }
     
         
