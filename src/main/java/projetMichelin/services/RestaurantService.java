@@ -6,7 +6,6 @@ import java.util.List;
 import org.springframework.stereotype.Service;
 
 import jakarta.transaction.Transactional;
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import projetMichelin.dto.restaurant.RestaurantCreateRequestDto;
 import projetMichelin.dto.restaurant.RestaurantResponseDto;
