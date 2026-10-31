@@ -1,6 +1,4 @@
 package projetMichelin.controllers;
-
-import java.util.ArrayList;
 import java.util.List;
 
 import org.springframework.http.HttpStatus;
@@ -13,36 +11,42 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import projetMichelin.dto.restaurant.RestaurantCreateRequestDto;
 import projetMichelin.dto.restaurant.RestaurantResponseDto;
-import org.springframework.web.bind.annotation.RequestParam;
-
+import projetMichelin.dto.restaurant.RestaurantUpdateDto;
+import projetMichelin.services.RestaurantService;
 
 
 @RestController 
+@RequiredArgsConstructor 
 public class RestaurantController {
 
-    private final List<RestaurantResponseDto> restaurants = new ArrayList<>();
+    private final RestaurantService restaurantService;
 
-    //Récupérer tous les restaurants
+    //Pour tous les restaurants
     @GetMapping("/restaurants")
-    public List<RestaurantResponseDto> getAll(){
-        return restaurants;
+    public List<RestaurantResponseDto> getRestaurants(){
+        return restaurantService.getRestaurants();
     }
 
+    //Pour un restaurant en particulier
     @GetMapping("/restaurants/{id}")
-    public ResponseEntity<RestaurantResponseDto> getById(@PathVariable Integer id) {
-        return restaurants.stream()
-        .filter(r->r.getId().equals(id))
-        .findFirst()
-        .map(ResponseEntity::ok)
-        .orElse(ResponseEntity.notFound().build());
+    public RestaurantResponseDto getById(@PathVariable Integer id) {
+        return restaurantService.getRestaurantById(id);
     }
 
-    @PostMapping("path")
-    public String postMethodName(@RequestBody String entity) {
-        //TODO: process POST request
-        
-        return entity;
+    //Pour créer un restauarant
+    @PostMapping("/restaurants")
+    public ResponseEntity<RestaurantResponseDto> createRestaurant(@Valid @RequestBody RestaurantCreateRequestDto dto) {
+        RestaurantResponseDto created = restaurantService.createRestaurant(dto);
+        return ResponseEntity.status(HttpStatus.CREATED).body(created);
+    }
+
+    //Pour modifier nom et l'adresse
+    @PutMapping("/restaurants/{id}")
+    public RestaurantResponseDto updateRestaurant(@PathVariable Integer id, @Valid @RequestBody RestaurantUpdateDto dto){
+        return RestaurantService.updateRestaurant(id,dto);
     }
     
         

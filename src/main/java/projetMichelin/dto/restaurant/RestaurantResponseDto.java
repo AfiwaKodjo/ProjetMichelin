@@ -14,7 +14,7 @@ public class RestaurantResponseDto {
     private Integer id;
     private String name;
     private String address;
-    private String picture;
+    //private String picture;
     private double moyenne;
 
     

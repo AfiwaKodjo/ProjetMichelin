@@ -6,6 +6,7 @@ import java.util.List;
 import org.springframework.stereotype.Service;
 
 import jakarta.transaction.Transactional;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import projetMichelin.dto.restaurant.RestaurantCreateRequestDto;
 import projetMichelin.dto.restaurant.RestaurantResponseDto;
@@ -23,7 +24,7 @@ public class RestaurantService {
     private final RestaurantRepository restaurantRepository;
 
     //Récupérer tous les restaurants avec leur moyenne
-    public List<RestaurantRepository> getRestaurants(){
+    public List<RestaurantResponseDto> getRestaurants(){
         List<RestaurantResponseDto> resultat = new ArrayList<>();
         for(RestaurantEntity restaurant: restaurantRepository.findAll()){
             resultat.add(toDto(restaurant));
@@ -53,7 +54,7 @@ public class RestaurantService {
     }
 
     //mettre à jour le nom et l'adresse d'un restaurant
-    public RestaurantResponseDto updateRestaurant(Integer id, RestaurantUpdateDto dto){
+    public RestaurantResponseDto updateRestaurant(Integer id, RestaurantCreateRequestDto dto){
         RestaurantEntity restaurant = findRestaurant(id);
         restaurant.setName(dto.getName());
         restaurant.setAddress(dto.getAddress());
