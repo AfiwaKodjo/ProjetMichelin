@@ -3,20 +3,17 @@ package projetMichelin.services;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import projetMichelin.dto.evaluation.EvaluationCreateRequestDto;
 import projetMichelin.dto.evaluation.EvaluationResponseDto;
-import projetMichelin.dto.restaurant.RestaurantCreateRequestDto;
-import projetMichelin.dto.restaurant.RestaurantResponseDto;
-import projetMichelin.dto.restaurant.RestaurantUpdateDto;
 import projetMichelin.entity.EvaluationEntity;
 import projetMichelin.entity.RestaurantEntity;
 import projetMichelin.exceptions.NotFoundException;
 import projetMichelin.repository.EvaluationRepository;
-import projetMichelin.repository.RestaurantRepository;
 
 @Service 
 @RequiredArgsConstructor
@@ -36,13 +33,18 @@ public class EvaluationService {
     }
 
     //Supprimer une évaluation
-    public void deleteEvaluation(Integer id, Integer restaurantId){
+    public void deleteEvaluation(Integer id, Integer restaurantId, String userName, boolean isAdmin ){
         EvaluationEntity evaluation = evaluationRepository.findById(id)
                                       .orElseThrow(() -> new NotFoundException("L'évaluation " + id + " n'existe pas"));
         if (!(evaluation.getRestaurant().getId()).equals(restaurantId)){
             throw new NotFoundException("cet évaluation " + id
                 + " n'appartient pas au restaurant " + restaurantId);
         }
+    boolean estAuteur = evaluation.getReviewerName().equals(userName);
+    if (!estAuteur && !isAdmin) {
+        throw new AccessDeniedException("Attention, Ce n'est pas votre évaluation"); 
+    }
+
         evaluationRepository.delete(evaluation);
     }
 

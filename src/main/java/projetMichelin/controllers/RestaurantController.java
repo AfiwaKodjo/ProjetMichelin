@@ -3,6 +3,7 @@ import java.util.List;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -37,6 +38,7 @@ public class RestaurantController {
     }
 
     //Pour créer un restauarant
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/restaurants")
     public ResponseEntity<RestaurantResponseDto> createRestaurant(@Valid @RequestBody RestaurantCreateRequestDto dto) {
         RestaurantResponseDto created = restaurantService.createRestaurant(dto);
@@ -44,6 +46,7 @@ public class RestaurantController {
     }
 
     //Pour modifier nom et l'adresse
+     @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/restaurants/{id}")
     public RestaurantResponseDto updateRestaurant(@PathVariable Integer id, @Valid @RequestBody RestaurantUpdateDto dto){
         return restaurantService.updateRestaurant(id,dto);

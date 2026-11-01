@@ -48,18 +48,18 @@ public class SecurityConfig {
             return roles; 
         }
 
-        Map<String, Object> client = (Map<String, Object>) resourceAccess.get("coursm2");
+        Map<String, Object> client=(Map<String, Object>) resourceAccess.get("coursm2");
         if (client == null) {
             return roles; 
         }
 
-        List<String> listeRoles = (List<String>) client.get("roles");
+        List<String> listeRoles =(List<String>) client.get("roles");
         if (listeRoles == null) {
             return roles;
         }
 
         //Spring veut ROLE_USER et pas USER seulement
-        for (String role : listeRoles) {
+        for (String role:listeRoles) {
             roles.add(new SimpleGrantedAuthority("ROLE_" + role));
         }
         return roles;
