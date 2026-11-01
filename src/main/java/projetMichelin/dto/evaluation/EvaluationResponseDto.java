@@ -1,5 +1,7 @@
 package projetMichelin.dto.evaluation;
 
+import java.util.List;
+
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -16,5 +18,6 @@ public class EvaluationResponseDto {
     private String comment;
     private Integer note;
     private Integer restaurantId;
+    private List<String> pictureUrl;
 
 }

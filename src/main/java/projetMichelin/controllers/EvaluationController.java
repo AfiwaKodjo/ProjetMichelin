@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import projetMichelin.dto.UrlResponseDto;
 import projetMichelin.dto.evaluation.EvaluationCreateRequestDto;
 import projetMichelin.dto.evaluation.EvaluationResponseDto;
 import projetMichelin.services.EvaluationService;
@@ -59,5 +60,13 @@ public class EvaluationController {
       //si user a le rôle ADMIN
     public boolean isAdmin(Authentication authentication) {
         return authentication.getAuthorities().stream().anyMatch(role -> role.getAuthority().equals("ROLE_ADMIN"));
+    }
+
+    //Ajouter une photo à son évaluation
+    @PreAuthorize("hasAnyRole('USER','ADMIN')")
+    @PostMapping("/restaurants/{restaurantId}/evaluations/{evaluationId}/photos")
+    public UrlResponseDto getPictureUrl(@PathVariable Integer restaurantId,@PathVariable Integer evaluationId,Authentication authentication) {
+        String url = evaluationService.getPictureUrl(restaurantId, evaluationId, userName(authentication), isAdmin(authentication));
+        return new UrlResponseDto(url);
     }
 }

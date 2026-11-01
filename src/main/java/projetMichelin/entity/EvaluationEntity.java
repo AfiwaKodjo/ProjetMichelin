@@ -1,6 +1,10 @@
 package projetMichelin.entity;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import jakarta.persistence.Column;
+import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
@@ -40,5 +44,10 @@ public class EvaluationEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "restaurant_id", nullable = false)
     private RestaurantEntity restaurant;
+
+    @Builder.Default
+    @ElementCollection 
+    @Column(name = "picture_url")
+    private List<String> pictures = new ArrayList<>();
 
 }
