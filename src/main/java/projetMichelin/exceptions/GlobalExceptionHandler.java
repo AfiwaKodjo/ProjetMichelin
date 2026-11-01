@@ -1,7 +1,9 @@
 package projetMichelin.exceptions;
 
-import java.nio.file.AccessDeniedException;
-
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -55,7 +57,15 @@ public class GlobalExceptionHandler {
 }
 
     @ExceptionHandler(AccessDeniedException.class)
-    public ResponseEntity<ErrorResponse> handleAccesNonAutorise(HttpMessageNotReadableException e) {
-        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(new ErrorResponse(403, "Vous n'avez pas ses accès"));
+    public ResponseEntity<ErrorResponse> handleAccesNonAutorise(AccessDeniedException e) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+
+    if (auth == null||auth instanceof AnonymousAuthenticationToken) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(new ErrorResponse(401, "Vous devez être connecté d'abord"));
+    }
+
+    return ResponseEntity.status(HttpStatus.FORBIDDEN)
+            .body(new ErrorResponse(403, "Vous n'avez pas ses droits"));
 }
 }

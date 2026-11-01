@@ -33,7 +33,7 @@ public class EvaluationService {
     }
 
     //Supprimer une évaluation
-    public void deleteEvaluation(Integer id, Integer restaurantId, String userName, boolean isAdmin ){
+    public void deleteEvaluation(Integer restaurantId, Integer id, String userName, boolean isAdmin ){
         EvaluationEntity evaluation = evaluationRepository.findById(id)
                                       .orElseThrow(() -> new NotFoundException("L'évaluation " + id + " n'existe pas"));
         if (!(evaluation.getRestaurant().getId()).equals(restaurantId)){
