@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import projetMichelin.dto.UrlResponseDto;
 import projetMichelin.dto.restaurant.RestaurantCreateRequestDto;
 import projetMichelin.dto.restaurant.RestaurantResponseDto;
 import projetMichelin.dto.restaurant.RestaurantUpdateDto;
@@ -51,6 +52,13 @@ public class RestaurantController {
     public RestaurantResponseDto updateRestaurant(@PathVariable Integer id, @Valid @RequestBody RestaurantUpdateDto dto){
         return restaurantService.updateRestaurant(id,dto);
     }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @PostMapping("/restaurants/{id}/image")
+    public UrlResponseDto getPictureUrl(@PathVariable Integer id) {
+        return new UrlResponseDto(restaurantService.getPictureUrl(id));
+    }
+    
     
         
 

@@ -2,6 +2,7 @@ package projetMichelin.services;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 import org.springframework.stereotype.Service;
 
@@ -14,6 +15,7 @@ import projetMichelin.entity.EvaluationEntity;
 import projetMichelin.entity.RestaurantEntity;
 import projetMichelin.exceptions.NotFoundException;
 import projetMichelin.repository.RestaurantRepository;
+import projetMichelin.repository.S3Repository;
 
 @Service 
 @RequiredArgsConstructor
@@ -21,6 +23,8 @@ import projetMichelin.repository.RestaurantRepository;
 public class RestaurantService {
 
     private final RestaurantRepository restaurantRepository;
+    private final S3Repository s3Repository;
+    private static final String BUCKET="restaurant";
 
     //Récupérer tous les restaurants avec leur moyenne
     public List<RestaurantResponseDto> getRestaurants(){
@@ -31,7 +35,7 @@ public class RestaurantService {
         return resultat;
     }
 
-    //On cherche le restaurant dans la base et on le renvoie. S'il est vide, on lève une exception
+    //On cherche le restaurant dans la base et on le renvoie. S'il est vide, on lève une exception, pour éviter de refaire à chaque fois
     public RestaurantEntity findRestaurant(Integer id){
         return restaurantRepository.findById(id)
         .orElseThrow(()->new NotFoundException("Le restaurant avec id "+id+" n'existe pas"));
@@ -65,19 +69,34 @@ public class RestaurantService {
     private RestaurantResponseDto toDto(RestaurantEntity restaurant){
         double moyenne = restaurant.getEvaluations().stream().mapToInt(EvaluationEntity::getNote)
                   .average().orElse(-1);
+        //lien pour voir l'image
+        String pictureUrl = null;
+        if (restaurant.getPicture() != null) {
+            pictureUrl = s3Repository.getFileUrl(BUCKET, restaurant.getPicture());
+        }
         return new RestaurantResponseDto(
             restaurant.getId(),
             restaurant.getName(),
             restaurant.getAddress(),
-            moyenne
+            moyenne,
+            pictureUrl
         );
 
     } 
 
+    public String getPictureUrl(Integer id){
+        RestaurantEntity restaurantEntity = findRestaurant(id);
+        String key = "Afiwa/restaurants"+id+UUID.randomUUID()+".jpg";
+        restaurantEntity.setPicture(key);
+        restaurantRepository.save(restaurantEntity);
+        return s3Repository.getUploadFileUrl(BUCKET,key);
 
-
-
-
-
-
+    }
 }
+
+
+
+
+
+
+

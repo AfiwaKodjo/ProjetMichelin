@@ -36,6 +36,9 @@ public class RestaurantEntity {
     @Column(name="address",length=255, nullable=false)
     private String address;
 
+    @Column(name="image")
+    private String picture;
+
     @Builder.Default
     @OneToMany(mappedBy = "restaurant", fetch = FetchType.LAZY)
     private List<EvaluationEntity> evaluations = new ArrayList<>();
