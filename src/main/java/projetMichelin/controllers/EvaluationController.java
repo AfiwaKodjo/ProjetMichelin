@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import jakarta.validation.Valid;
@@ -68,5 +69,11 @@ public class EvaluationController {
     public UrlResponseDto getPictureUrl(@PathVariable Integer restaurantId,@PathVariable Integer evaluationId,Authentication authentication) {
         String url = evaluationService.getPictureUrl(restaurantId, evaluationId, userName(authentication), isAdmin(authentication));
         return new UrlResponseDto(url);
+    }
+
+    //recherche par mots clés
+    @GetMapping("/evaluations")
+    public List<EvaluationResponseDto> searchEvaluations(@RequestParam String motsCles) {
+        return evaluationService.searchEvaluations(motsCles);
     }
 }

@@ -16,6 +16,7 @@ import projetMichelin.entity.RestaurantEntity;
 import projetMichelin.exceptions.NotFoundException;
 import projetMichelin.repository.EvaluationRepository;
 import projetMichelin.repository.S3Repository;
+import projetMichelin.services.indexation.IndexService;
 
 @Service 
 @RequiredArgsConstructor
@@ -26,6 +27,7 @@ public class EvaluationService {
     private final RestaurantService restaurantService;
     private final S3Repository s3Repository;
     private static final String BUCKET="evaluation";
+    private final IndexService indexService;
 
 
     //ajouter une évaluation sur un restaurant
@@ -33,7 +35,10 @@ public class EvaluationService {
         RestaurantEntity restaurant = restaurantService.findRestaurant(restaurantId);
         EvaluationEntity evaluation = EvaluationEntity.builder().reviewerName(reviewerName).comment(dto.getComment())
                                                       .note(dto.getNote()).restaurant(restaurant).build();
-          return toDto(evaluationRepository.save(evaluation));
+
+        EvaluationEntity saved = evaluationRepository.save(evaluation);
+        indexService.indexComment(saved.getId(), saved.getComment());
+        return toDto(saved);
     }
 
     //Supprimer une évaluation
@@ -49,6 +54,7 @@ public class EvaluationService {
         throw new AccessDeniedException("Attention, Ce n'est pas votre évaluation"); 
     }
 
+        indexService.deleteComment(evaluation.getId());
         evaluationRepository.delete(evaluation);
     }
 
@@ -95,11 +101,26 @@ public class EvaluationService {
         if (!isAuthor && !isAdmin) {
             throw new AccessDeniedException("Ce n'est pas votre évaluation");
         }
-        String key = "Afiwa/evaluation" + evaluationId + "-" + UUID.randomUUID() + ".jpg";
+        String key = "Afiwa/evaluation"+evaluationId+"-"+UUID.randomUUID() +".jpg";
         evaluation.getPictures().add(key);
         evaluationRepository.save(evaluation);
         return s3Repository.getUploadFileUrl(BUCKET, key);
     }
+
+        //Recherche par des mots-clés
+    public List<EvaluationResponseDto> searchEvaluations(String motsCles) {
+        if (motsCles == null || motsCles.isBlank()) {
+            return new ArrayList<>();}
+
+        List<Integer> ids = indexService.searchComment(motsCles);
+
+        List<EvaluationResponseDto> resultat = new ArrayList<>();
+        for (EvaluationEntity evaluation: evaluationRepository.findAllById(ids)) {
+            resultat.add(toDto(evaluation));
+        }
+        return resultat;
+    }
+
 }
 
 
