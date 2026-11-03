@@ -24,6 +24,8 @@ import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
 import org.springframework.stereotype.Service;
 
+import jakarta.annotation.PreDestroy;
+
 //recherche par mots-clés dans les commentaires
 @Service
 public class IndexService {
@@ -34,8 +36,13 @@ public class IndexService {
     private final QueryParser parser;     
 
     public IndexService() throws IOException {
-        Directory dossier = FSDirectory.open(Paths.get("index"));
-         StandardAnalyzer analyzer = new StandardAnalyzer(); 
+        this("index");
+    }
+
+    //ce sont les tests qui l'utilise
+    public IndexService(String chemin) throws IOException {
+        Directory dossier = FSDirectory.open(Paths.get(chemin));
+        StandardAnalyzer analyzer = new StandardAnalyzer();
         this.parser = new QueryParser("content", analyzer);
         this.writer = new IndexWriter(dossier, new IndexWriterConfig(analyzer));
 
@@ -96,5 +103,11 @@ public class IndexService {
             reader = nouveau;
             searcher = new IndexSearcher(reader);
         }
+    }
+    //Quand l'appli s'arrête, on referme l'index pour libérer write.lock
+    @PreDestroy
+    public void fermer() throws IOException {
+        reader.close();
+        writer.close();
     }
 }
