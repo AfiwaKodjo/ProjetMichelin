@@ -33,4 +33,7 @@ build/
 .vscode/
 
 # images de test
+*.mv.db
+*.trace.db
+index/
 image/
