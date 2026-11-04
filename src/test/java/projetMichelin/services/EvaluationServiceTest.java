@@ -16,6 +16,7 @@ import org.springframework.security.access.AccessDeniedException;
 
 import projetMichelin.dto.evaluation.EvaluationCreateRequestDto;
 import projetMichelin.dto.evaluation.EvaluationResponseDto;
+import projetMichelin.dto.evaluation.EvaluationUpdateDto;
 import projetMichelin.entity.EvaluationEntity;
 import projetMichelin.entity.RestaurantEntity;
 import projetMichelin.exceptions.NotFoundException;
@@ -23,7 +24,7 @@ import projetMichelin.repository.EvaluationRepository;
 import projetMichelin.repository.S3Repository;
 import projetMichelin.services.indexation.IndexService;
 
-//Tests unitaires pour le service des évaluations.
+//tests du service des évaluations
 @ExtendWith(MockitoExtension.class)
 class EvaluationServiceTest {
 
@@ -46,18 +47,18 @@ class EvaluationServiceTest {
         return RestaurantEntity.builder().id(1).name("Le Bistrot").address("Nancy").build();
     }
 
-    private EvaluationEntity evaluationDeLucien() {
+    //évaluation 10 de Lucien dans le restaurant 1
+    private EvaluationEntity evaluationLucien() {
         return EvaluationEntity.builder()
                 .id(10).reviewerName("Lucien Bramard").comment("meilleures lasagnes").note(3)
-                  .restaurant(restaurant()).build();
+                .restaurant(restaurant()).build();
     }
 
-
+    // création
     @Test
-    void createEvaluation_enregistreAvecLAuteurDuTokenEtIndexe() {
+    void creerEvaluation() {
         when(restaurantService.findRestaurant(1)).thenReturn(restaurant());
-        when(evaluationRepository.save(any(EvaluationEntity.class)))
-        .thenAnswer(invocation -> {
+        when(evaluationRepository.save(any(EvaluationEntity.class))).thenAnswer(invocation -> {
             EvaluationEntity e = invocation.getArgument(0);
             e.setId(10);
             return e;
@@ -68,22 +69,23 @@ class EvaluationServiceTest {
 
         assertEquals("Lucien Bramard", resultat.getReviewerName());
         assertEquals(3, resultat.getNote());
-        verify(indexService).indexComment(10, "meilleures lasagnes"); 
+        verify(indexService).indexComment(10, "meilleures lasagnes");
     }
 
     @Test
-    void createEvaluation_restaurantInexistant_leveNotFoundEtNEnregistreRien() {
+    void creerRestaurantInexistant() {
         when(restaurantService.findRestaurant(999)).thenThrow(new NotFoundException("introuvable"));
 
         assertThrows(NotFoundException.class, () -> evaluationService.createEvaluation(999,
-                new EvaluationCreateRequestDto("Superbe homard", 3), "Lucien Bramard"));
+                new EvaluationCreateRequestDto("sushi frais", 3), "Lucien Bramard"));
         verify(evaluationRepository, never()).save(any());
         verify(indexService, never()).indexComment(any(), any());
     }
 
+    // suppression
     @Test
-    void deleteEvaluation_parSonAuteur_supprimeEtRetireDeLIndex() {
-        EvaluationEntity evaluation = evaluationDeLucien();
+    void supprimerParAuteur() {
+        EvaluationEntity evaluation = evaluationLucien();
         when(evaluationRepository.findById(10)).thenReturn(Optional.of(evaluation));
 
         evaluationService.deleteEvaluation(1, 10, "Lucien Bramard", false);
@@ -93,16 +95,17 @@ class EvaluationServiceTest {
     }
 
     @Test
-    void deleteEvaluation_parUnAutreUser_leveAccessDenied() {
-        when(evaluationRepository.findById(10)).thenReturn(Optional.of(evaluationDeLucien()));
+    void supprimerParAutreUser() {
+        when(evaluationRepository.findById(10)).thenReturn(Optional.of(evaluationLucien()));
+
         assertThrows(AccessDeniedException.class,
                 () -> evaluationService.deleteEvaluation(1, 10, "Quelqu'un d'autre", false));
         verify(evaluationRepository, never()).delete(any());
     }
 
     @Test
-    void deleteEvaluation_parUnAdmin_supprimeMemeSiCeNestPasLaSienne() {
-        EvaluationEntity evaluation = evaluationDeLucien();
+    void supprimerParAdmin() {
+        EvaluationEntity evaluation = evaluationLucien();
         when(evaluationRepository.findById(10)).thenReturn(Optional.of(evaluation));
 
         evaluationService.deleteEvaluation(1, 10, "Noël Flantier", true);
@@ -111,27 +114,28 @@ class EvaluationServiceTest {
     }
 
     @Test
-    void deleteEvaluation_mauvaisRestaurant_leveNotFound() {
-        when(evaluationRepository.findById(10)).thenReturn(Optional.of(evaluationDeLucien()));
+    void supprimerMauvaisRestaurant() {
+        when(evaluationRepository.findById(10)).thenReturn(Optional.of(evaluationLucien()));
 
-        // l'évaluation 10 est dans le restaurant 1, pas le 2
+        //l'évaluation 10 est dans le restaurant 1, pas le 2
         assertThrows(NotFoundException.class,
                 () -> evaluationService.deleteEvaluation(2, 10, "Lucien Bramard", false));
         verify(evaluationRepository, never()).delete(any());
     }
 
     @Test
-    void deleteEvaluation_inexistante_leveNotFound() {
+    void supprimerInexistante() {
         when(evaluationRepository.findById(999)).thenReturn(Optional.empty());
 
         assertThrows(NotFoundException.class,
                 () -> evaluationService.deleteEvaluation(1, 999, "Lucien Bramard", false));
     }
 
+    // mes évaluations
     @Test
-    void getEvaluations_renvoieCellesDeLUtilisateur() {
+    void mesEvaluations() {
         when(evaluationRepository.findByReviewerName("Lucien Bramard"))
-                .thenReturn(List.of(evaluationDeLucien()));
+                .thenReturn(List.of(evaluationLucien()));
 
         List<EvaluationResponseDto> resultat = evaluationService.getEvaluations("Lucien Bramard");
 
@@ -139,22 +143,70 @@ class EvaluationServiceTest {
         assertEquals("Lucien Bramard", resultat.get(0).getReviewerName());
     }
 
+    // recherche
     @Test
-    void searchEvaluations_renvoieLesEvaluationsTrouveesParLucene() {
-        when(indexService.searchComment("homard")).thenReturn(List.of(10));
-        when(evaluationRepository.findAllById(List.of(10))).thenReturn(List.of(evaluationDeLucien()));
+    void rechercheTrouve() {
+        when(indexService.searchComment("lasagnes")).thenReturn(List.of(10));
+        when(evaluationRepository.findAllById(List.of(10))).thenReturn(List.of(evaluationLucien()));
 
-        List<EvaluationResponseDto> resultat = evaluationService.searchEvaluations("homard");
+        List<EvaluationResponseDto> resultat = evaluationService.searchEvaluations("lasagnes");
 
         assertEquals(1, resultat.size());
         assertEquals("meilleures lasagnes", resultat.get(0).getComment());
     }
 
     @Test
-    void searchEvaluations_aucunResultat_listeVide() {
+    void rechercheVide() {
         when(indexService.searchComment("pizza")).thenReturn(List.of());
         when(evaluationRepository.findAllById(List.of())).thenReturn(List.of());
 
         assertTrue(evaluationService.searchEvaluations("pizza").isEmpty());
+    }
+
+    // modification
+
+    @Test
+    void modifierParAuteur() {
+        EvaluationEntity evaluation = evaluationLucien();
+        when(evaluationRepository.findById(10)).thenReturn(Optional.of(evaluation));
+        when(evaluationRepository.save(evaluation)).thenReturn(evaluation);
+
+        EvaluationResponseDto resultat = evaluationService.updateEvaluation(1, 10,new EvaluationUpdateDto("lasagnes un peu froides", 1), "Lucien Bramard", false);
+
+        assertEquals("lasagnes un peu froides", resultat.getComment());
+        assertEquals(1, resultat.getNote());
+        //l'index doit avoir le nouveau commentaire
+        verify(indexService).deleteComment(10);
+        verify(indexService).indexComment(10, "lasagnes un peu froides");
+    }
+
+    @Test
+    void modifierParAutreUser() {
+        when(evaluationRepository.findById(10)).thenReturn(Optional.of(evaluationLucien()));
+
+        assertThrows(AccessDeniedException.class, () -> evaluationService.updateEvaluation(1, 10,
+                new EvaluationUpdateDto("pirate", 0), "Quelqu'un d'autre", false));
+        verify(evaluationRepository, never()).save(any());
+    }
+
+    @Test
+    void modifierParAdmin() {
+        EvaluationEntity evaluation = evaluationLucien();
+        when(evaluationRepository.findById(10)).thenReturn(Optional.of(evaluation));
+        when(evaluationRepository.save(evaluation)).thenReturn(evaluation);
+
+        EvaluationResponseDto resultat = evaluationService.updateEvaluation(1, 10,
+                new EvaluationUpdateDto("modifié par l'admin", 2), "Noël Flantier", true);
+
+        assertEquals("modifié par l'admin", resultat.getComment());
+    }
+
+    @Test
+    void modifierMauvaisRestaurant() {
+        when(evaluationRepository.findById(10)).thenReturn(Optional.of(evaluationLucien()));
+
+        assertThrows(NotFoundException.class, () -> evaluationService.updateEvaluation(2, 10,
+                new EvaluationUpdateDto("x", 1), "Lucien Bramard", false));
+        verify(evaluationRepository, never()).save(any());
     }
 }

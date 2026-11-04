@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -20,6 +21,7 @@ import lombok.RequiredArgsConstructor;
 import projetMichelin.dto.UrlResponseDto;
 import projetMichelin.dto.evaluation.EvaluationCreateRequestDto;
 import projetMichelin.dto.evaluation.EvaluationResponseDto;
+import projetMichelin.dto.evaluation.EvaluationUpdateDto;
 import projetMichelin.services.EvaluationService;
 
 @RestController 
@@ -53,14 +55,14 @@ public class EvaluationController {
         return evaluationService.getEvaluations(userName(authentication));
     }
 
-    public String userName(Authentication authentication){
+    private String userName(Authentication authentication){
         Jwt jwt = (Jwt)authentication.getPrincipal();
         return jwt.getClaimAsString("name");
     }
 
       //si user a le rôle ADMIN
-    public boolean isAdmin(Authentication authentication) {
-        return authentication.getAuthorities().stream().anyMatch(role -> role.getAuthority().equals("ROLE_ADMIN"));
+    private boolean isAdmin(Authentication authentication) {
+        return authentication.getAuthorities().stream().anyMatch(role ->role.getAuthority().equals("ROLE_ADMIN"));
     }
 
     //Ajouter une photo à son évaluation
@@ -75,5 +77,12 @@ public class EvaluationController {
     @GetMapping("/evaluations")
     public List<EvaluationResponseDto> searchEvaluations(@RequestParam String motsCles) {
         return evaluationService.searchEvaluations(motsCles);
+    }
+
+    //Modifier une évaluation
+    @PreAuthorize("hasAnyRole('USER','ADMIN')")
+    @PutMapping("/restaurants/{restaurantId}/evaluations/{evaluationId}")
+    public EvaluationResponseDto updateEvaluation(@PathVariable Integer restaurantId, @PathVariable Integer evaluationId,@Valid @RequestBody EvaluationUpdateDto dto, Authentication authentication) {
+        return evaluationService.updateEvaluation(restaurantId, evaluationId, dto,userName(authentication), isAdmin(authentication));
     }
 }

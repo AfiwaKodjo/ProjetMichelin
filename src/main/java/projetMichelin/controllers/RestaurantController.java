@@ -38,7 +38,7 @@ public class RestaurantController {
         return restaurantService.getRestaurantById(id);
     }
 
-    //Pour créer un restauarant
+    //Pour créer un restaurant
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/restaurants")
     public ResponseEntity<RestaurantResponseDto> createRestaurant(@Valid @RequestBody RestaurantCreateRequestDto dto) {

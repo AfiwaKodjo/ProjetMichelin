@@ -39,7 +39,7 @@ public class IndexService {
         this("index");
     }
 
-    //ce sont les tests qui l'utilise
+    //ce sont les tests qui l'utilisent
     public IndexService(String chemin) throws IOException {
         Directory dossier = FSDirectory.open(Paths.get(chemin));
         StandardAnalyzer analyzer = new StandardAnalyzer();

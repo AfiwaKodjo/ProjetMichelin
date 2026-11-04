@@ -11,6 +11,7 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import projetMichelin.dto.evaluation.EvaluationCreateRequestDto;
 import projetMichelin.dto.evaluation.EvaluationResponseDto;
+import projetMichelin.dto.evaluation.EvaluationUpdateDto;
 import projetMichelin.entity.EvaluationEntity;
 import projetMichelin.entity.RestaurantEntity;
 import projetMichelin.exceptions.NotFoundException;
@@ -46,12 +47,12 @@ public class EvaluationService {
         EvaluationEntity evaluation = evaluationRepository.findById(id)
                                       .orElseThrow(() -> new NotFoundException("L'évaluation " + id + " n'existe pas"));
         if (!(evaluation.getRestaurant().getId()).equals(restaurantId)){
-            throw new NotFoundException("cet évaluation " + id
+            throw new NotFoundException("cette évaluation " + id
                 + " n'appartient pas au restaurant " + restaurantId);
         }
     boolean estAuteur = evaluation.getReviewerName().equals(userName);
     if (!estAuteur && !isAdmin) {
-        throw new AccessDeniedException("Attention, Ce n'est pas votre évaluation"); 
+        throw new AccessDeniedException("Ce n'est pas votre évaluation"); 
     }
 
         indexService.deleteComment(evaluation.getId());
@@ -120,7 +121,28 @@ public class EvaluationService {
         }
         return resultat;
     }
+    
+    //Modifier une évaluation
+    public EvaluationResponseDto updateEvaluation(Integer restaurantId, Integer id, EvaluationUpdateDto dto,String userName, boolean isAdmin) {
+        EvaluationEntity evaluation = findEvaluation(id);
 
+        if (!evaluation.getRestaurant().getId().equals(restaurantId)) {
+            throw new NotFoundException("L'évaluation " + id + " n'appartient pas au restaurant " + restaurantId);
+        }
+        boolean estAuteur = evaluation.getReviewerName().equals(userName);
+        if (!estAuteur && !isAdmin) {
+            throw new AccessDeniedException("Ce n'est pas votre évaluation");
+        }
+
+        evaluation.setComment(dto.getComment());
+        evaluation.setNote(dto.getNote());
+        EvaluationEntity saved = evaluationRepository.save(evaluation);
+
+        //on remplace l'ancien commentaire dans l'index
+        indexService.deleteComment(saved.getId());
+        indexService.indexComment(saved.getId(), saved.getComment());
+        return toDto(saved);
+    }
 }
 
 

@@ -35,5 +35,6 @@ build/
 # images de test
 *.mv.db
 *.trace.db
+.lock.db
 index/
 image/
