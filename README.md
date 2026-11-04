@@ -1,111 +1,91 @@
-# Examen Backend de la formation Web services
+# Projet Michelin
 
-**Lisez bien l'énoncé avant de vous lancer.**
+Afiwa Aimée KODJO
 
-## Introduction
+API Spring Boot pour gérer les restaurants du guide Michelin et leurs évaluations.
 
-Le guide Michelin a décidé de mettre à jour son application web permettant de gérer les
-restaurants visités et leur classement.
+## Lancer
 
-Grâce à vos compétences, vous avez été choisis pour effectuer cette tâche.
-Dans un premier temps, vous devez créer leur API à l'aide de la technologie Springboot (Java 17 ou plus).
+```
+./mvnw spring-boot:run
+```
 
-## Définitions
+Swagger : http://localhost:8080/swagger-ui/index.html
 
-Un **restaurant** est caractérisé par :
+Tests : `./mvnw test`
 
-- un identifiant unique (un nombre entier positif)
-- Un nom (longueur max de 90 caractères)
-- Une adresse (longueur max de 255 caractères)
-- Une liste d'**évaluations**
-- une image présentant le restaurant
+## Utilisateurs
 
-Une **évaluation** est caractérisée par :
+Keycloak, client `coursm2`
 
-- un identifiant unique (un nombre entier positif)
-- Le nom de l'évaluateur (longueur max de 50 caractères)
-- Le commentaire (longueur max de 255 caractères)
-- Le nombre d'étoiles recommandé (0,1,2 ou 3) appellée "note"
-- Une ou plusieurs photo des plats
+- lucien.bramard@michelin.fr / lasecuriteavantout (USER)
+- noel.flantier@michelin.fr / cestbeaulhiver (ADMIN)
 
-## Cahier des charges
+## Routes
 
-L'API doit exposer les fonctionnalités suivantes :
+| Méthode | Route | Qui |
+|---|---|---|
+| GET | /restaurants | tout le monde |
+| GET | /restaurants/{id} | tout le monde |
+| POST | /restaurants | ADMIN |
+| PUT | /restaurants/{id} | ADMIN |
+| POST | /restaurants/{id}/image | ADMIN |
+| POST | /restaurants/{id}/evaluations | USER, ADMIN |
+| PUT | /restaurants/{id}/evaluations/{evaluationId} | auteur ou ADMIN |
+| DELETE | /restaurants/{id}/evaluations/{evaluationId} | auteur ou ADMIN |
+| POST | /restaurants/{id}/evaluations/{evaluationId}/photos | auteur ou ADMIN |
+| GET | /evaluations/moi | connecté |
+| GET | /evaluations?motsCles=... | tout le monde |
 
-#### Restaurants
+## Explications
 
-- La possibilité de récupérer tous les restaurants\*
-- La possibilité de récupérer un restaurant en particulier\*
-- La possibilité de créer un restaurant\*
-- La possibilité de mettre à jour le nom et l'adresse d'un restaurant
+### Routes
 
-#### Evaluations
+Les GET sur les restaurants et la recherche sont ouverts à tout le monde, même sans être connecté. Pour moi c'est comme un guide, on doit pouvoir le consulter librement. Par contre pour écrire quoi que ce soit il faut un token.
 
-- La possibilité d'ajouter une évaluation sur un restaurant
-- La possibilité de supprimer une évaluation
-- La possibilité de récupérer les évaluations en fonction d'un (ou plusieurs) mots clefsd
-- La possibilité pour un utilisateur de récupérer toutes les évaluations qu'il a lui même créé.
+J'ai mis les évaluations sous leur restaurant (`/restaurants/{id}/evaluations`) comme dans l'exemple des bibliothèques du cours. Seules la recherche et "mes évaluations" sont sous `/evaluations`, parce qu'elles ne dépendent pas d'un restaurant.
 
-Les routes retournant un (ou plusieurs) restaurant (marquées par \*) doivent aussi retourner la moyenne des notes du-dit restaurant dans une propriété nommée "moyenne". Si le restaurant ne dispose d'aucune evaluation, la moyenne est de -1.
+Pour les codes de retour j'ai mis 201 à la création et 204 à la suppression, comme ça on sait directement ce qui s'est passé.
 
-Les cas d'erreur doivent être gérés pour retourner une erreur (404, 500, etc) contenant :
+### Ce que je n'ai pas fait / mes choix sur le sujet
 
-- Un code
-- Un message expliquant l'erreur
+- Je n'ai pas fait la suppression d'un restaurant, ce n'était pas dans le cahier des charges. Du coup `DELETE /restaurants/{id}` renvoie 405.
+- La recherche se fait sur toutes les évaluations, pas par restaurant (vous aviez dit que les deux étaient possibles).
+- Le nom de l'évaluateur n'est pas envoyé par le client, je le récupère dans le token avec le claim `name`. Sinon quelqu'un pourrait écrire au nom d'un autre.
+- Les ids sont des entiers comme demandé dans le sujet.
 
-### Authentification
+### Sécurité
 
-L'authentifcation se base sur une solution externe compatible OpenID Connect.
+Spring ne lisait pas les rôles de Keycloak tout seul. J'ai cherché dans la doc de Spring Security et j'ai fait un convertisseur qui va chercher les rôles dans `resource_access.coursm2.roles` et qui ajoute `ROLE_` devant, pour que `hasRole('ADMIN')` marche.
 
-- Il existe deux types de users : 
-  - les evaluateurs qui peuvent créer et éditer leurs prorpes évaluations. Ils ont le role : USER
-  - les admins qui ont tous les droits dont créer les restaurant et éditer n'importe quelle évaluation. Ils ont le role : ADMIN
+Pour savoir si un USER peut modifier ou supprimer une évaluation, je compare l'auteur de l'évaluation avec le nom dans le token, ça se fait dans le service.
 
-#### utilisateurs pré-définis : 
-- Lucien Bramard
-  - username : ```lucien.bramard@michelin.fr```
-  - password: ```lasecuriteavantout```
-  - role : ```USER```
+### S3
 
-- Noël Flantier
-  - username : ```noel.flantier@michelin.fr```
-  - password : ```cestbeaulhiver```
-  - role : ```ADMIN```
+J'ai un seul `S3Repository` qui génère les liens (envoi et lecture), et chaque service lui donne son bucket : `restaurant` ou `evaluation`. L'API ne reçoit jamais les images, elle donne juste un lien valable 10 minutes et c'est le client qui envoie le fichier.
 
-Le rôle se trouve dans le JWT qui permet d'identifié un utilisateur.
+Comme les buckets sont partagés avec toute la promo, tous mes fichiers commencent par `Afiwa/` pour ne pas mélanger avec les autres.
 
-##### Stockage des images
+### Erreurs
 
-Vous avez deux buckets à votre dispositon : 
-  - evaluation
-  - restaurant
+Tout passe par `GlobalExceptionHandler` et renvoie toujours `{ code, message }` : 400, 401, 403, 404, 405 et 500. Pour le 500 je log l'erreur mais je ne renvoie pas le détail au client.
 
-Credentials :
-  - url: "https://s3.bober.ovh"
-  - accessKeyId: "cqBlF80IVJrc1isWW6oK"
-  - secretAccessKey: "KPJlY826Qi0d952w4GWmQIvA0zfvWi62hvIyiZlT"
+J'ai eu un souci avec le 401 : sans token je recevais 403. En fait mon handler attrapait l'erreur avant Spring Security, donc je regarde maintenant si l'utilisateur est anonyme pour renvoyer 401.
 
-#### Tests
+### Recherche (Lucene)
 
-- Les services doivent être testés a l'aide de tests unitaires
+Dans l'index je mets seulement l'id et le commentaire. Lucene me donne les ids et je récupère les évaluations dans la base, comme ça les données ne sont pas à deux endroits. L'index est mis à jour quand on ajoute, modifie ou supprime une évaluation, sinon la recherche trouvait encore les anciens commentaires.
 
-#### Swagger
+### Tests
 
-L'api doit exposer un swagger décrivant ses différentes routes
+tests unitaires avec JUnit et Mockito, sur `RestaurantService`, `EvaluationService` et `IndexService`.
 
-## Conseils supplémentaires
+Pour les deux premiers j'ai mocké la base, S3 et Lucene. Pour `IndexService` je n'ai pas mocké parce que c'est justement Lucene que je voulais tester : chaque test crée son propre index dans un dossier à part (dans `target`), comme ça ça ne touche pas au vrai index.
 
-- Planifiez bien les tâches que vous devrez faire afin d'organiser au mieux vos dossiers et votre code dès le début.
-- Mieux vaut faire peu correctement que beaucoup salement.
-- Vous ne faites pas du code seulement pour vous-même mais aussi pour qu'il puisse être compris par quelqu'un d'autre, notamment moi.
-- Les commentaires expliquant ce que vous faites sont bien sûr les bienvenus.
-- La partie des rôles n'a pas été vue en cours, je sais, vous devrez fouiller la doc pour voir comment mapper les rôles d'un JWT à un droit d'accès dans votre code (Lire la documentation est une partie importante du métier d'ingénieur)
-- Pour les tests, pensez bien à couvrir un maximum de cas (restaurant avec et sans evaluations, etc...)
-- Vous avez accès à votre précédent travail et à internet.
-- En revanche, votre dignité vous interdit de faire appel à vos camarades a une IA.
-- Vous pouvez bien sûr créer un nouveau projet à partir de https://start.spring.io/
+J'ai supprimé le test `contextLoads` généré par Spring Initializr, il démarrait toute l'application et bloquait sur le verrou de l'index Lucene.
 
-## Rendu
+### Autres
 
-- Sur github (out gitlab ou Codeberg ou autre) : envoyez moi le lien et assurez-vous que j'ai accès au repo en lecture (a envoyer à antoine.robert@intech.lu avec votre nom + prénom)
- 
+- Java 21, Spring Boot 4.
+- Les clés S3 sont dans `application.yaml` parce qu'elles étaient données dans le sujet, mais normalement il faudrait les mettre en variables d'environnement.
+- Pour la moyenne, quand on récupère tous les restaurants, Hibernate charge les évaluations de chaque restaurant une par une (le problème N+1 vu en cours). Je ne l'ai pas corrigé, on pourrait faire une requête avec `AVG` directement en base.
