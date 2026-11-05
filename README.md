@@ -14,13 +14,6 @@ Swagger : http://localhost:8080/swagger-ui/index.html
 
 Tests : `./mvnw test`
 
-## Utilisateurs
-
-Keycloak, client `coursm2`
-
-- lucien.bramard@michelin.fr / lasecuriteavantout (USER)
-- noel.flantier@michelin.fr / cestbeaulhiver (ADMIN)
-
 ## Routes
 
 | Méthode | Route | Qui |
